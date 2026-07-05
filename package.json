@@ -6,13 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name=blockwords --branch=main --commit-dirty=true"
   },
   "dependencies": {
     "phaser": "^3.90.0"
   },
   "devDependencies": {
     "typescript": "^6.0.3",
-    "vite": "^8.1.3"
+    "vite": "^8.1.3",
+    "wrangler": "^4.86.0"
   }
 }
