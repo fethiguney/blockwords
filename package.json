@@ -7,12 +7,14 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name=blockwords --branch=main --commit-dirty=true"
+    "deploy": "npm run build && gh-pages -d dist --nojekyll",
+    "deploy:cf": "npm run build && wrangler pages deploy dist --project-name=blockwords --branch=main --commit-dirty=true"
   },
   "dependencies": {
     "phaser": "^3.90.0"
   },
   "devDependencies": {
+    "gh-pages": "^6.3.0",
     "typescript": "^6.0.3",
     "vite": "^8.1.3",
     "wrangler": "^4.86.0"

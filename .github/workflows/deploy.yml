@@ -1,8 +1,9 @@
 name: Deploy to GitHub Pages
 
+# NOT: Hesapta Actions faturalandirma kilidi oldugu icin otomatik tetikleme kapali.
+# Yayin su an yerelden "npm run deploy" (gh-pages branch) ile yapiliyor.
+# Kilit kalkarsa push tetiklemesi geri acilabilir.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
