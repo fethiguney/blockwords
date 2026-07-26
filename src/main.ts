@@ -1,11 +1,7 @@
 import Phaser from 'phaser';
+import { GAME_WIDTH, GAME_HEIGHT } from './config';
 import { BootScene } from './scenes/BootScene';
 import { MenuScene } from './scenes/MenuScene';
-
-// Dikey (portre) oyun alanı — telefon öncelikli tasarım.
-// FIT modu: her ekranda oranı koruyarak sığdırır.
-export const GAME_WIDTH = 540;
-export const GAME_HEIGHT = 960;
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,

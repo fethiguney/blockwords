@@ -1,22 +1,22 @@
-# MVP Geliştirme Planı — "Bloklu Serüven" (oyun adı: **BlockWords**)
+# MVP Development Plan — "Blocky Adventure" (game name: **BlockWords**)
 
-> Tarih: 5 Temmuz 2026 · Dayanak: [ANALIZ.md](ANALIZ.md) · Hedef: Eylül 2026 okul açılmadan oynanabilir MVP
+> Date: July 5, 2026 · Based on: [ANALYSIS.md](ANALYSIS.md) · Goal: playable MVP before school starts in September 2026
 
-## 0. Sabitlenen Kararlar
+## 0. Locked Decisions
 
-| Karar | Seçim | Gerekçe |
+| Decision | Choice | Rationale |
 |---|---|---|
-| Platform | Web / PWA | 0 TL, iPhone'da "Ana Ekrana Ekle" ile app hissi |
-| Stack | **Phaser 3 + TypeScript + Vite** | Olgun 2D motor, mobil dokunmatik, hızlı build |
-| Barındırma | **Cloudflare Pages** → `blockwords.pages.dev` (GitHub repo bağlantısıyla otomatik deploy) | Temiz adres; isim müsaitliği 5 Tem 2026'da doğrulandı |
-| Asset | **Kenney.nl** CC0 paketleri (pixel/voxel) + kendi çizimler | Telif temiz, ücretsiz |
-| İçerik | JSON dosyaları (koddan ayrı) | Müfredat/kitap değişince kod değişmez |
-| Kayıt | localStorage (+ JSON dışa/içe aktar) | Sunucusuz |
-| MVP teması | **Life in Nature** (hayvanlar/doğa, ~40 kelime) | İki müfredatta da var, görsel olarak zengin |
-| MVP mekanikleri | Kelime Madenciliği + Yaratık Düellosu (+ boss) | Craft Masası v2'ye ertelendi |
-| Dil | Arayüz Türkçe, öğrenim içeriği İngilizce | Hedef kullanıcı 7. sınıf |
+| Platform | Web / PWA | 0 cost, app-like via "Add to Home Screen" on iPhone |
+| Stack | **Phaser 3 + TypeScript + Vite** | Mature 2D engine, mobile touch, fast builds (Phaser pinned to 3.x — npm defaults to v4) |
+| Hosting | **GitHub Pages** → `fethiguney.github.io/blockwords` (`npm run deploy`) | `pages.dev` turned out ISP-blocked from Türkiye (found July 5, 2026); `blockwords.pages.dev` remains as backup (`npm run deploy:cf`) |
+| Assets | **Kenney.nl** CC0 packs (pixel/voxel) + own drawings | Clean licensing, free |
+| Content | JSON files (separate from code) | Curriculum/textbook changes don't touch code |
+| Saves | localStorage (+ JSON export/import) | Serverless |
+| MVP theme | **Life in Nature** (animals/nature, ~40 words) | Exists in both curricula, visually rich |
+| MVP mechanics | Word Mining + Creature Duel (+ boss) | Craft Table deferred to v2 |
+| Language | UI in Turkish, learning content in English | Target user is a Turkish 7th grader |
 
-## 1. Proje İskeleti
+## 1. Project Skeleton
 
 ```
 insructGame/
@@ -24,30 +24,32 @@ insructGame/
 ├── vite.config.ts
 ├── package.json
 ├── public/
-│   ├── manifest.webmanifest      # PWA: isim, ikon, tam ekran
-│   ├── icons/                    # 192px, 512px app ikonları
+│   ├── manifest.webmanifest      # PWA: name, icons, fullscreen (Sprint 4)
+│   ├── icons/                    # 192px, 512px app icons (Sprint 4)
+│   ├── favicon.svg
 │   └── content/
-│       └── nature.json           # MVP tema verisi
+│       └── nature.json           # MVP theme data
 ├── src/
-│   ├── main.ts                   # Phaser config + sahne kaydı
+│   ├── main.ts                   # Phaser config + scene registry
+│   ├── config.ts                 # shared constants (game size)
 │   ├── scenes/
-│   │   ├── BootScene.ts          # asset preload + save yükleme
-│   │   ├── MenuScene.ts          # başlık, "Oyna", ayarlar
-│   │   ├── MapScene.ts           # seviye haritası (5 seviye + boss)
-│   │   ├── MiningScene.ts        # Mekanik 1: Kelime Madenciliği
-│   │   ├── DuelScene.ts          # Mekanik 2: Yaratık Düellosu (boss dahil)
-│   │   └── ResultScene.ts        # seviye sonu: XP, zümrüt, yeni kelimeler
+│   │   ├── BootScene.ts          # asset preload + save load
+│   │   ├── MenuScene.ts          # title, "Play", settings
+│   │   ├── MapScene.ts           # level map (5 levels + boss)
+│   │   ├── MiningScene.ts        # Mechanic 1: Word Mining
+│   │   ├── DuelScene.ts          # Mechanic 2: Creature Duel (incl. boss)
+│   │   └── ResultScene.ts        # level end: XP, emeralds, new words
 │   ├── systems/
-│   │   ├── SaveManager.ts        # localStorage okuma/yazma, dışa/içe aktar
-│   │   ├── ContentLoader.ts      # JSON yükleme + doğrulama
-│   │   ├── WordScheduler.ts      # soru seçimi + yanlışları tekrar kuyruğu
-│   │   ├── Speech.ts             # Web Speech API TTS sarmalayıcı
-│   │   └── Audio.ts              # ses efektleri
-│   └── ui/                       # buton, panel, kalp/XP barı bileşenleri
-└── .github/workflows/deploy.yml  # push → build → GitHub Pages
+│   │   ├── SaveManager.ts        # localStorage read/write, export/import
+│   │   ├── ContentLoader.ts      # JSON loading + validation
+│   │   ├── WordScheduler.ts      # question picking + retry queue for misses
+│   │   ├── Speech.ts             # Web Speech API TTS wrapper
+│   │   └── Audio.ts              # sound effects
+│   └── ui/                       # button, panel, hearts/XP bar components
+└── .github/workflows/deploy.yml  # manual-only (Actions locked on the account)
 ```
 
-## 2. İçerik Veri Şeması (nature.json)
+## 2. Content Data Schema (nature.json)
 
 ```json
 {
@@ -77,12 +79,12 @@ insructGame/
 }
 ```
 
-Kurallar:
-- Kelime seçimi eski müfredat "Wild Animals/Environment" listelerinden başlar; Eylül'de ders kitabına göre revize edilir (sadece JSON değişir).
-- `distractors` (çeldiriciler) elle yazılır — rastgele yanlış şık üretmek yanıltıcı olabilir.
-- Görseller: Kenney paketlerinden; olmayan hayvanlar için basit pixel-art veya emoji fallback.
+Rules:
+- Word selection starts from old-curriculum "Wild Animals/Environment" lists; revised against the textbook in September (JSON-only change).
+- `distractors` (wrong options) are hand-written — randomly generated wrong options can mislead.
+- Images from Kenney packs; simple pixel art or emoji fallback for missing animals.
 
-## 3. Kayıt Şeması (localStorage)
+## 3. Save Schema (localStorage)
 
 ```json
 {
@@ -94,92 +96,99 @@ Kurallar:
 }
 ```
 
-`cracked: true` olan kelimeler WordScheduler tarafından sonraki seviyelere öncelikli sokulur (aralıklı tekrar). Ayarlar ekranından tek dosyalık JSON dışa/içe aktarma.
+Words with `cracked: true` are prioritized by the WordScheduler in later levels (spaced repetition). Settings screen offers single-file JSON export/import.
 
-## 4. Mekanik Spesifikasyonları
+## 4. Mechanic Specs
 
-### 4.1 Kelime Madenciliği (MiningScene)
-- Ekranda 4×4 blok duvarı; her blokta bir İngilizce kelime (veya resim).
-- Bloğa dokun → altta 3 şık (TR anlam veya EN kelime, kademeye göre).
-- **Doğru:** blok kırılma animasyonu + parçacık + "kling" sesi, kelime envantere, +XP.
-- **Yanlış:** blok çatlar (kırılmaz), kelime tekrar kuyruğuna; doğru cevap gösterilir + TTS okur.
-- Seviye hedefi: duvarı temizle. Süre baskısı YOK (kaygı yaratmasın), ama hızlı bitirme bonus zümrüt verir.
-- Kademeler: Taş = resim→kelime eşleştirme; Demir = TR→EN yazma (ekran klavyesi/harf blokları); Elmas = dinle→yaz.
+### 4.1 Word Mining (MiningScene)
+- A 4×4 wall of blocks; each block shows an English word (or picture).
+- Tap a block → 3 options below (TR meaning or EN word, depending on tier).
+- **Correct:** break animation + particles + "cling" sound, word joins inventory, +XP.
+- **Wrong:** block cracks (doesn't break), word enters the retry queue; the correct answer is shown + read aloud by TTS.
+- Level goal: clear the wall. NO time pressure (avoid anxiety), but finishing fast earns bonus emeralds.
+- Tiers: Stone = picture→word matching; Iron = TR→EN typing (on-screen letter blocks); Diamond = listen→write.
 
-### 4.2 Yaratık Düellosu (DuelScene)
-- Creeper-vari özgün düşman sağda, oyuncu solda; sıra tabanlı.
-- Soru kartı gelir (kelime veya örnek cümlede boşluk). 3 şık.
-- **Doğru:** oyuncu vurur, düşman canı −1, vuruş animasyonu.
-- **Yanlış:** düşman bir adım yaklaşır/oyuncu kalp kaybeder (3 kalp).
-- Normal seviye düşmanı: 5 can. **Boss:** 10 can + tüm seviyelerin kelimeleri karışık + 2 kademe karışık soru tipi.
-- Kalp biterse seviye tekrar — ceza yok, "tekrar dene" pozitif mesajla.
+### 4.2 Creature Duel (DuelScene)
+- An original Creeper-like enemy on the right, player on the left; turn-based.
+- A question card appears (word, or a blank in a sample sentence). 3 options.
+- **Correct:** player strikes, enemy loses 1 HP, hit animation.
+- **Wrong:** enemy steps closer / player loses a heart (3 hearts).
+- Regular enemy: 5 HP. **Boss:** 10 HP + mixed words from all levels + 2 tiers of mixed question types.
+- Running out of hearts restarts the level — no penalty, a positive "try again" message.
 
-### 4.3 Seviye Haritası (MapScene)
-- Dikey patika üzerinde 6 düğüm (5 seviye + boss). Kilitli/açık/tamamlandı durumları, yıldız (1-3) gösterimi.
-- Seviye = Madencilik bölümü + Düello bölümü art arda (boss hariç: sadece düello).
+### 4.3 Level Map (MapScene)
+- 6 nodes on a vertical path (5 levels + boss). Locked/open/completed states, 1-3 star display.
+- Level = Mining section + Duel section back to back (boss: duel only).
 
-## 5. Sprint Planı
+## 5. Sprint Plan
 
-Tempo varsayımı: akşamları/haftasonu hobi mesaisi. Her sprint ~1 hafta.
+Assumed pace: hobby time on evenings/weekends. Each sprint ~1 week.
 
-### Faz 0 — Kurulum (1-2 akşam)
-- [ ] Oyun adı kesinleştir + GitHub repo + `pages.dev`/`github.io` adres kontrolü
-- [ ] Vite + Phaser 3 + TS iskeleti; "Hello Phaser" sahnesi
-- [ ] GitHub Actions → GitHub Pages otomatik deploy (**ilk günden canlı link** — walking skeleton)
-- [ ] Kenney paketlerini indir, kullanılacak sprite'ları seç
-- **Bitti tanımı:** iPhone'da Safari'den açılan, dokunmaya tepki veren boş sahne.
+### Phase 0 — Setup (1-2 evenings) ✅ DONE (July 5, 2026)
+- [x] Finalize name + GitHub repo + address availability check
+- [x] Vite + Phaser 3 + TS skeleton; interactive scene
+- [x] Deploy pipeline live from day one (walking skeleton) — `npm run deploy` → GitHub Pages
+- [ ] Download Kenney packs, pick sprites (moved to Sprint 2 — placeholder textures are generated in code for now)
+- **Done means:** an empty scene that opens in iPhone Safari and reacts to touch. ✅
 
-### Sprint 1 — Çekirdek altyapı
-- [ ] Sahne akışı: Boot → Menu → Map → (Mining/Duel) → Result
-- [ ] `nature.json` v1: 40 kelime + 10 örnek cümle + 6 seviye tanımı (en emek isteyen iş — erken başla)
-- [ ] ContentLoader + SaveManager + temel UI kiti (buton, panel, kalp/XP barı)
-- [ ] Speech.ts: TTS "dinle" fonksiyonu (iOS Safari'de ilk dokunuşta unlock gerektiğini unutma)
-- **Bitti tanımı:** Haritadan boş bir seviyeye girip çıkılabiliyor, ilerleme kayboluyor/yüklüyor.
+### Sprint 1 — Core infrastructure
+- [ ] Scene flow: Boot → Menu → Map → (Mining/Duel) → Result
+- [ ] `nature.json` v1: 40 words + 10 sample sentences + 6 level definitions (the most labor-intensive item — start early)
+- [ ] ContentLoader + SaveManager + basic UI kit (button, panel, hearts/XP bar)
+- [ ] Speech.ts: TTS "listen" function (remember iOS Safari needs an unlock on first touch)
+- **Done means:** you can enter and leave an empty level from the map; progress saves and loads.
 
-### Sprint 2 — Kelime Madenciliği
-- [ ] Blok duvarı + şık paneli + doğru/yanlış akışı (spec 4.1)
-- [ ] Kırılma/çatlama animasyonları, parçacık, sesler
-- [ ] WordScheduler v1: çatlak kelimeleri öne alma
-- [ ] Taş kademesi tam; Demir kademesi (yazma) temel hali
-- **Bitti tanımı:** 1. seviye baştan sona oynanıp Result ekranında XP/zümrüt görülüyor.
+### Sprint 2 — Word Mining
+- [ ] Block wall + option panel + correct/wrong flow (spec 4.1)
+- [ ] Break/crack animations, particles, sounds
+- [ ] WordScheduler v1: prioritize cracked words
+- [ ] Stone tier complete; Iron tier (typing) basic version
+- **Done means:** level 1 playable start to finish with XP/emeralds on the Result screen.
 
-### Sprint 3 — Yaratık Düellosu + Boss
-- [ ] Sıra tabanlı düello akışı (spec 4.2), kalp sistemi, vuruş animasyonları
-- [ ] Boss varyantı (10 can, karışık havuz)
-- [ ] Seviye = Mining + Duel zinciri; 6 seviyenin tamamı veriyle bağlı
-- **Bitti tanımı:** Tema baştan sona (boss dahil) bitirilebiliyor.
+### Sprint 3 — Creature Duel + Boss
+- [ ] Turn-based duel flow (spec 4.2), heart system, hit animations
+- [ ] Boss variant (10 HP, mixed pool)
+- [ ] Level = Mining + Duel chain; all 6 levels wired to data
+- **Done means:** the theme can be finished end to end, boss included.
 
-### Sprint 4 — Meta, PWA ve iPhone
-- [ ] Yıldız sistemi, seviye kilidi, zümrüt sayacı, basit ödül (menü skin'i)
-- [ ] PWA: manifest + ikonlar + service worker (offline çalışma)
-- [ ] iPhone gerçek cihaz testi: dokunma hedef boyutları (min 44px), safe-area, ses/TTS, "Ana Ekrana Ekle" akışı
-- [ ] Ayarlar: ses aç/kapa, ilerleme dışa/içe aktar, ilerlemeyi sıfırla
-- **Bitti tanımı:** Telefonda ikondan açılıp uçak modunda oynanabiliyor.
+### Sprint 4 — Meta, PWA and iPhone
+- [ ] Star system, level locks, emerald counter, a simple reward (menu skin)
+- [ ] PWA: manifest + icons + service worker (offline play)
+- [ ] Real-device iPhone test: touch target sizes (min 44px), safe-area, sound/TTS, "Add to Home Screen" flow
+- [ ] Settings: sound on/off, progress export/import, reset progress
+- **Done means:** launches from the home-screen icon and plays in airplane mode.
 
-### Sprint 5 — Cila + Çocuk Testi 🎯
-- [ ] "Juice": ekran sarsıntısı, combo sesleri, seviye sonu kutlaması
-- [ ] Onboarding: ilk açılışta 3 adımlı görsel anlatım (metin ağırlıklı değil)
-- [ ] **Çocukla oturum: sessizce izle** — nerede sıkıldı, nerede güldü, ne sordu → not al
-- [ ] Gözlem sonrası hızlı düzeltmeler
-- **Bitti tanımı:** Çocuk ikinci kez kendiliğinden açmak istiyor mu? (Gerçek başarı ölçütü bu.)
+### Sprint 5 — Polish + Playtest 🎯
+- [ ] "Juice": screen shake, combo sounds, level-end celebration
+- [ ] Onboarding: 3-step visual intro on first launch (not text-heavy)
+- [ ] **Session with the child: observe silently** — where do they get bored, laugh, ask questions → take notes
+- [ ] Quick fixes based on observation
+- **Done means:** does the child open it again on their own? (That's the real success metric.)
 
-## 6. Test Kontrol Listesi (her sprint sonunda)
+## 6. Test Checklist (end of every sprint)
 
-- iPhone Safari (gerçek cihaz) + masaüstü Chrome
-- İlk yüklemede boyut < 5 MB, açılış < 3 sn
-- TTS ilk dokunuş sonrası çalışıyor
-- localStorage kaydı kapat-aç sonrası duruyor
-- Yanlış cevapta oyun "cezalandırıcı" hissettirmiyor (ceza değil tekrar)
+- iPhone Safari (real device) + desktop Chrome
+- First load < 5 MB, startup < 3 s
+- TTS works after first touch
+- localStorage save survives close-and-reopen
+- Wrong answers never feel punishing (retry, not punishment)
 
-## 7. MVP'ye Bilerek Alınmayanlar (v2 park alanı)
+## 7. Deliberately Out of MVP (v2 parking lot)
 
-Craft Masası (cümle dizme) · 2.-8. temalar · konuşma tanıma · günlük seri/bildirim · çoklu profil · App Store (Capacitor) · skor tabloları (sunucu ister — zaten yok)
+Craft Table (sentence building) · themes 2-8 · speech recognition · daily streak/notifications · multiple profiles · App Store (Capacitor) · leaderboards (needs a server — there is none)
 
-## 8. Riskler (plana özgü)
+## 8. Plan-Specific Risks
 
-| Risk | Önlem |
+| Risk | Mitigation |
 |---|---|
-| İçerik girişi sıkıcı gelir, proje yavaşlar | nature.json'u Sprint 1'de bitir; kelime listesini hazır PDF'lerden dönüştür |
-| Kapsam şişmesi ("bir de şunu ekleyeyim") | Yeni fikirler §7 park alanına; MVP tanımı değişmez |
-| iOS ses/TTS sürprizleri | Sprint 1'de erken cihaz testi, sona bırakma |
-| Çocuk beğenmez | Bu bir başarısızlık değil, veri — mekaniği gözleme göre değiştir (Sprint 5 amaç bu) |
+| Content entry gets tedious, project stalls | Finish nature.json in Sprint 1; convert word lists from existing PDFs |
+| Scope creep ("let me just add...") | New ideas go to the §7 parking lot; the MVP definition doesn't change |
+| iOS sound/TTS surprises | Early device test in Sprint 1, don't leave it to the end |
+| The child doesn't like it | Not a failure — data. Change mechanics based on observation (that's what Sprint 5 is for) |
+
+## 9. Operational Notes (learned during Phase 0)
+
+- **Deploy:** `npm run deploy` publishes the working tree — commit first, then deploy.
+- **`pages.dev` is ISP-blocked from Türkiye**; Cloudflare stays as backup (`npm run deploy:cf`, wrangler OAuth already set up).
+- **GitHub Actions is locked on this account (billing)** — `.github/workflows/deploy.yml` is manual-trigger only; local deploy is the norm.
+- **Phaser must stay pinned to 3.x** — plain `npm install phaser` brings v4.

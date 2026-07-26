@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT } from '../main';
+import { GAME_WIDTH, GAME_HEIGHT } from '../config';
 
 /**
  * Başlık ekranı. Faz 0 "bitti tanımı": dokunmaya tepki veren sahne —
@@ -59,41 +59,26 @@ export class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
   }
 
-  private spawnBlock(x: number, y: number, textureKey: string): void {
+  /**
+   * (x, y) konumuna dokunulabilir blok koyar; dokununca kırılır ve
+   * kısa bir gecikmeyle yukarıdan yenisi düşer (özyinelemeli döngü).
+   */
+  private spawnBlock(x: number, y: number, textureKey: string, dropIn = false): void {
     const block = this.add
-      .image(x, y, textureKey)
+      .image(x, dropIn ? y - 300 : y, textureKey)
       .setInteractive({ useHandCursor: true });
 
-    block.once('pointerdown', () => {
-      // Kırılma: küçülüp kaybol + parçacıklar
+    if (dropIn) {
+      block.setAlpha(0);
       this.tweens.add({
         targets: block,
-        scale: 0,
-        angle: Phaser.Math.Between(-45, 45),
-        duration: 200,
-        ease: 'Back.easeIn',
-        onComplete: () => {
-          block.destroy();
-          // Yeni blok yukarıdan düşer — dünya hiç boş kalmasın
-          this.time.delayedCall(400, () => this.dropNewBlock(x, y, textureKey));
-        },
+        y,
+        alpha: 1,
+        duration: 350,
+        ease: 'Bounce.easeOut',
       });
-      this.emitCrumbs(x, y, textureKey);
-    });
-  }
+    }
 
-  private dropNewBlock(x: number, y: number, textureKey: string): void {
-    const block = this.add
-      .image(x, y - 300, textureKey)
-      .setAlpha(0)
-      .setInteractive({ useHandCursor: true });
-    this.tweens.add({
-      targets: block,
-      y,
-      alpha: 1,
-      duration: 350,
-      ease: 'Bounce.easeOut',
-    });
     block.once('pointerdown', () => {
       this.tweens.add({
         targets: block,
@@ -103,7 +88,7 @@ export class MenuScene extends Phaser.Scene {
         ease: 'Back.easeIn',
         onComplete: () => {
           block.destroy();
-          this.time.delayedCall(400, () => this.dropNewBlock(x, y, textureKey));
+          this.time.delayedCall(400, () => this.spawnBlock(x, y, textureKey, true));
         },
       });
       this.emitCrumbs(x, y, textureKey);
